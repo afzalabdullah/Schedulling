@@ -2,8 +2,6 @@ from flask import Flask, request, jsonify
 import random as rnd
 from datetime import datetime, timedelta
 
-import prettytable
-
 app = Flask(__name__)
 
 # Constants for Event Scheduling
@@ -238,54 +236,6 @@ class GeneticAlgorithmEvents:
 
         return tournament_pop
 
-# DisplayMgrEvents class handles the display of available data, generations, and schedules
-class DisplayMgrEvents:
-    def print_available_data(self):
-        print("> All Available Data")
-        self.print_rooms()
-        self.print_events()
-
-    def print_rooms(self):
-        rooms = data.get_rooms()
-        available_rooms_table = prettytable.PrettyTable(['Room', 'Availability Schedule'])
-
-        for i in range(len(rooms)):
-            room_schedule = ['Available' if slot else 'Unavailable' for slot in rooms[i]._availability_schedule]
-            available_rooms_table.add_row([rooms[i].get_number(), room_schedule])
-
-        print(available_rooms_table)
-
-    def print_events(self):
-        available_events_table = prettytable.PrettyTable(['Event #', 'Event Name'])
-        events = data.get_events()
-
-        for i in range(len(events)):
-            available_events_table.add_row([events[i].get_id(), events[i].get_name()])
-
-        print(available_events_table)
-
-    def print_generation(self, population):
-        table1 = prettytable.PrettyTable(['Schedule #', 'Fitness', '# of conflicts', 'Events'])
-        schedules = population.get_schedules()
-
-        for i in range(len(schedules)):
-            table1.add_row([str(i + 1), round(schedules[i].get_fitness(), 3), schedules[i].get_num_of_conflicts(),
-                            schedules[i].__str__()])
-
-        print(table1)
-
-    def print_schedule_as_table(self, schedule):
-        table1 = prettytable.PrettyTable(['Event #', 'Event Name', 'Room', 'Time Slot'])
-        events = schedule.get_events()
-
-        for i in range(len(events)):
-            table1.add_row(
-                [events[i].get_id(), events[i].get_name(), events[i].get_room().get_number()
-                    if events[i].get_room() is not None else 'N/A',
-                 events[i].get_time_slot().strftime('%I:%M %p') if events[i].get_time_slot() is not None else 'N/A']
-            )
-
-        print(table1)
 
 @app.route('/schedule', methods=['POST'])
 def schedule_events():
