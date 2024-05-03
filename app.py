@@ -18,6 +18,9 @@ TIME_SLOT_INTERVAL = None
 POPULATION_SIZE = None
 MAX_GENERATIONS = None
 
+# Global variable to store the best fitness
+best_fitness = None
+
 class Event:
     def __init__(self, id, name):
         self._id = id
@@ -49,7 +52,6 @@ class Event:
     def __str__(self):
         return f"{self._name}, Room: {self._room.get_number()}, Time: {self._time_slot.strftime('%I:%M %p') if self._time_slot else 'N/A'}"
 
-# Room class represents a room with a number and availability schedule
 # Room class represents a room with a number and availability schedule
 class Room:
     def __init__(self, number, availability_schedule):
@@ -239,7 +241,7 @@ class GeneticAlgorithmEvents:
 
 @app.route('/schedule', methods=['POST'])
 def schedule_events():
-    global data
+    global data, best_fitness
     json_data = request.json
     data = Data(
         num_rooms=json_data['numRooms'],
@@ -250,27 +252,40 @@ def schedule_events():
         room_availability=json_data['roomAvailability']
     )
 
-    # Run scheduling algorithm
-    population = PopulationEvents(POPULATION_SIZE, data)
-    genetic_algorithm = GeneticAlgorithmEvents()
+    best_schedule = None
 
-    generation_number = 0
-    while population.get_schedules()[0].get_fitness() != 1.0 and generation_number < MAX_GENERATIONS:
-        generation_number += 1
-        population = genetic_algorithm.evolve(population)
+    # Run scheduling algorithm multiple times
+    for _ in range(5):  # Adjust the number of iterations as needed
+        # Run scheduling algorithm
+        population = PopulationEvents(POPULATION_SIZE, data)
+        genetic_algorithm = GeneticAlgorithmEvents()
 
-    # Get the best schedule
-    best_schedule = population.get_schedules()[0]
+        generation_number = 0
+        while population.get_schedules()[0].get_fitness() != 1.0 and generation_number < MAX_GENERATIONS:
+            generation_number += 1
+            population = genetic_algorithm.evolve(population)
+            # Update best fitness
+            best_fitness = population.get_schedules()[0].get_fitness()
 
-    # Return the best schedule as JSON response
+        # Get the best schedule
+        current_best_schedule = population.get_schedules()[0]
+
+        # Update the best schedule if it's the first iteration or if the current schedule has a higher fitness
+        if best_schedule is None or current_best_schedule.get_fitness() > best_schedule.get_fitness():
+            best_schedule = current_best_schedule
+
+    # Return the best schedule and best fitness as JSON response
     return jsonify({
         "bestSchedule": {
             "fitness": best_schedule.get_fitness(),
-            "events": [{"eventName": event.get_name(), "room": event.get_room().get_number(),
-                        "timeSlot": event.get_time_slot().strftime('%I:%M %p')}
+            "events": [{"eventName": event.get_name(),
+                        "room": event.get_room().get_number(),
+                        "StartTime": event.get_time_slot().strftime('%I:%M %p'),
+                        "EndTime": (event.get_time_slot() + timedelta(hours=1)).strftime('%I:%M %p')}
                        for event in best_schedule.get_events()]
-        }
+        },
     })
+
 
 if __name__ == '__main__':
     app.run(debug=True)
