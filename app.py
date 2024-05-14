@@ -289,13 +289,11 @@
 
 # if __name__ == '__main__':
 #     app.run(debug=True)
-
-
 from flask import Flask, request, jsonify
 import random as rnd
 from datetime import datetime, timedelta
 
-app = Flask(_name_)
+app = Flask(__name__)
 
 # Constants for Event Scheduling
 NUMB_OF_ELITE_EVENTS = 2
@@ -612,5 +610,5 @@ def schedule_events():
     })
 
 
-if _name_ == '_main_':
+if __name__ == '_main_':
     app.run(debug=True)
