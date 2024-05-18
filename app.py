@@ -314,7 +314,8 @@ def schedule_events():
                         "room": event.get_room().get_number(),
                         "startTime": event.get_time_slot().strftime('%I:%M %p'),
                         "endTime": event.get_end_time().strftime('%I:%M %p')}
-                       for event in best_schedule.get_events()]
+                       for event in best_schedule.get_events()],
+            "Count": len(event)
         },
     })
 
