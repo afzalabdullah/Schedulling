@@ -305,7 +305,17 @@ def schedule_events():
 
     if best_schedule is None:
         return jsonify({"message": "Failed to generate schedule due to exceptions."}), 500
-
+     # Calculate event name counts
+    # Calculate event name counts and total number of events
+    event_name_counts = {}
+    total_events = 0
+    for event in best_schedule.get_events():
+        event_name = event.get_name()
+        if event_name in event_name_counts:
+            event_name_counts[event_name] += 1
+        else:
+            event_name_counts[event_name] = 1
+        total_events += 1
     # Return the best schedule and best fitness as JSON response
     return jsonify({
         "bestSchedule": {
@@ -314,8 +324,9 @@ def schedule_events():
                         "room": event.get_room().get_number(),
                         "startTime": event.get_time_slot().strftime('%I:%M %p'),
                         "endTime": event.get_end_time().strftime('%I:%M %p')}
-                       for event in best_schedule.get_events()
+                       for event in best_schedule.get_events()]
         },
+        "totalEvents": total_events
     })
 
 
