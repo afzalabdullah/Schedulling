@@ -133,10 +133,10 @@ class ScheduleEvents:
                 new_event.set_time_slot(time_slot)
                 new_event.set_end_time(end_time)
                 new_event.set_room(self.get_available_room(time_slot, end_time))
+                self._events.append(new_event)
             except Exception as e:
                 print(e)  # Handle the exception here, such as logging or skipping the event
                 continue
-            self._events.append(new_event)
 
         return self
 
@@ -164,9 +164,13 @@ class ScheduleEvents:
             available_time_slots.append(current_time)
             current_time += TIME_SLOT_INTERVAL
 
-        chosen_time_slot = rnd.choice(available_time_slots)
-        end_time = chosen_time_slot + timedelta(hours=EVENT_DURATION)
-        return chosen_time_slot, end_time
+        rnd.shuffle(available_time_slots)  # Shuffle to ensure randomness
+        for chosen_time_slot in available_time_slots:
+            end_time = chosen_time_slot + timedelta(hours=EVENT_DURATION)
+            if any(room.is_available(chosen_time_slot, end_time) for room in self._data.get_rooms()):
+                return chosen_time_slot, end_time
+
+        raise Exception("No available time slots")
 
     def get_available_room(self, time_slot, end_time):
         available_rooms = [room for room in self._data.get_rooms() if room.is_available(time_slot, end_time)]
@@ -267,45 +271,24 @@ def schedule_events():
     )
 
     best_schedule = None
-    exception_occurred = False
 
-    # Run scheduling algorithm multiple times
-    for _ in range(5):  # Adjust the number of iterations as needed
-        # Run scheduling algorithm
-        population = PopulationEvents(POPULATION_SIZE, data)
-        genetic_algorithm = GeneticAlgorithmEvents()
+    # Run scheduling algorithm
+    population = PopulationEvents(POPULATION_SIZE, data)
+    genetic_algorithm = GeneticAlgorithmEvents()
 
-        generation_number = 0
-        while population.get_schedules()[0].get_fitness() != 1.0 and generation_number < MAX_GENERATIONS:
-            generation_number += 1
-            try:
-                population = genetic_algorithm.evolve(population)
-                # Update best fitness
-                best_fitness = population.get_schedules()[0].get_fitness()
-            except Exception as e:
-                print(f"Exception occurred: {e}")
-                exception_occurred = True
-                break  # Exit the loop if an exception occurs
+    generation_number = 0
+    while population.get_schedules()[0].get_fitness() != 1.0 and generation_number < MAX_GENERATIONS:
+        generation_number += 1
+        try:
+            population = genetic_algorithm.evolve(population)
+            # Update best fitness
+            best_fitness = population.get_schedules()[0].get_fitness()
+        except Exception as e:
+            print(f"Exception occurred: {e}")
+            continue  # Skip to the next iteration if an exception occurs
 
-        if not exception_occurred:
-            # Get the best schedule only if no exceptions occurred
-            current_best_schedule = population.get_schedules()[0]
+    best_schedule = population.get_schedules()[0]
 
-            # Update the best schedule if it's the first iteration or if the current schedule has a higher fitness
-            if best_schedule is None or current_best_schedule.get_fitness() > best_schedule.get_fitness():
-                best_schedule = current_best_schedule
-
-        if not exception_occurred:
-            # If no exception occurred, break out of the loop
-            break
-
-    if exception_occurred:
-        # If an exception occurred, regenerate the schedule
-        return schedule_events()
-
-    if best_schedule is None:
-        return jsonify({"message": "Failed to generate schedule due to exceptions."}), 500
-     # Calculate event name counts
     # Calculate event name counts and total number of events
     event_name_counts = {}
     total_events = 0
@@ -316,6 +299,7 @@ def schedule_events():
         else:
             event_name_counts[event_name] = 1
         total_events += 1
+
     # Return the best schedule and best fitness as JSON response
     return jsonify({
         "bestSchedule": {
