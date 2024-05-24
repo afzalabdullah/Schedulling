@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify
 import random as rnd
 from datetime import datetime, timedelta
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Constants for Event Scheduling
 NUMB_OF_ELITE_EVENTS = 2
